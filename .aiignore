@@ -1,0 +1,17 @@
+# AI / LLM Context Ignore Rules
+# 機密ファイルおよび自動インデックス除外対象
+
+.env
+*.env
+.env.*
+*.key
+*.pem
+service-account.json
+credentials.json
+
+# 仮想環境・キャッシュ
+.venv/
+__pycache__/
+*.pyc
+.git/
+
