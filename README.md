@@ -30,6 +30,46 @@ Oracle Cloud Free Tier の Autonomous Database (Oracle APEX) は、約7日間の
 
 ---
 
+## 🚀 ローカル起動・クイックスタート
+
+### 1. 依存関係のセットアップ
+```bash
+# パッケージの同期・仮想環境構築 (uv を使用)
+uv sync
+```
+
+### 2. 環境変数の準備
+`.env.example` をコピーして `.env` を作成し、Neon の接続文字列を設定します。
+```bash
+cp .env.example .env
+# .env を編集して DATABASE_URL などを設定
+```
+
+### 3. データベースのマイグレーション
+```bash
+uv run python manage.py migrate
+```
+
+### 4. 管理者アカウント（スーパーユーザー）の作成
+```bash
+uv run python manage.py createsuperuser
+```
+
+### 5. Web 開発サーバーの起動
+```bash
+uv run python manage.py runserver
+```
+起動後、ブラウザで以下にアクセスします：
+- **ダッシュボード画面**: [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
+- **Django 管理画面**: [http://127.0.0.1:8000/admin/](http://127.0.0.1:8000/admin/)
+
+### 6. APEX 死活監視バッチの手動実行
+```bash
+uv run python manage.py check_apex
+```
+
+---
+
 ## 📚 ドキュメント
 
 - [企画・設計書 (Portfolio Project Plan)](docs/portfolio_project_plan.md)

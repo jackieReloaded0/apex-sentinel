@@ -112,32 +112,60 @@ flowchart TD
 
 ---
 
-## 5. アプリケーション設計（Django構成）
+## 5. アプリケーション設計（全体フォルダ構成）
 
-Django の責務をきれいに分離し、テスタビリティの高いバックエンド構成にします。
+Web（Cloud Run Service）と定期バッチ（Cloud Run Jobs）を一元管理し、共通ロジックを `services/` に集約した**クリーンかつテスタビリティの高いモノレポ構成**を採用します。
 
+```text
+apex-sentinel/
+├── config/                      # ⚙️ Django 全体設定
+│   ├── __init__.py
+│   ├── settings.py              # Neon (DB) / Firestore / 環境変数
+│   ├── urls.py                  # Web ルーティング & /admin
+│   └── wsgi.py                  # Cloud Run Web 用 WSGI (Gunicorn)
+│
+├── monitor/                     # 🌐 Web・ダッシュボード アプリケーション
+│   ├── models.py                # Django ORM モデル（管理情報・設定マスタ）
+│   ├── views.py                 # ダッシュボード画面 & API View
+│   ├── urls.py                  # monitor アプリ内ルーティング
+│   ├── templates/               # HTML テンプレート (Tailwind CSS)
+│   └── static/                  # 静的ファイル
+│
+├── jobs/                        # ⏱️ 定期実行バッチ (Cloud Run Jobs 用)
+│   ├── __init__.py
+│   └── check_apex.py            # APEX ヘルスチェック実行ロジック本体
+│
+├── services/                    # 💡 共通サービス層 (Web と Jobs の両方から再利用)
+│   ├── __init__.py
+│   ├── apex_client.py           # Oracle APEX (ORDS REST API) との HTTP 通信クラス
+│   └── firestore_repo.py        # Firestore (時系列ログ) との読み書き抽象化クラス
+│
+├── docs/                        # 📚 各種設計・設定手順書
+│   ├── portfolio_project_plan.md# 本企画・設計書
+│   ├── neon_integration_guide.md# Neon 設定・連携ガイド
+│   └── oracle_apex_ords_setup.md# APEX ORDS 仕様書
+│
+├── AGENTS.md                    # 🛡️ AI エージェント用セキュリティ・開発規約
+├── .aiignore                    # AI 自動インデックス除外設定
+├── .cursorignore                # Cursor 用除外設定
+├── .geminiignore                # Gemini / Antigravity 用除外設定
+├── .env.example                 # 環境変数サンプル
+├── .env                         # ローカル環境変数（※Git除外・AI不可視）
+├── .gitignore                   # Git 除外設定
+├── Dockerfile                   # Web / Jobs 共通のマルチコンテナ定義
+├── manage.py                    # Django 管理スクリプト
+├── pyproject.toml               # uv パッケージ定義
+├── uv.lock                      # 厳密な依存関係ロックファイル
+└── README.md
 ```
-apex_sentinel/
-├── manage.py
-├── config/                  # Django プロジェクト設定
-│   ├── settings.py          # DATABASE_URL (Neon / ローカルSQLite切替)
-│   ├── urls.py
-│   └── wsgi.py
-├── monitor/                 # 監視・ポートフォリオアプリ
-│   ├── services/
-│   │   ├── apex_client.py   # Oracle APEX への HTTP 通信クラス
-│   │   └── firestore_repo.py# Firestore との読み書き抽象化クラス
-│   ├── management/
-│   │   └── commands/
-│   │       └── check_apex.py# Cloud Run Jobs で動かすバッチコマンド
-│   ├── views.py             # ダッシュボード画面 & API View
-│   ├── urls.py
-│   └── templates/
-│       └── monitor/
-│           └── dashboard.html# 直近5日間のステータス画面 (Tailwind CSS)
-├── Dockerfile               # Cloud Run 用コンテナ定義
-└── requirements.txt
-```
+
+### 設計のポイント
+1. **`services/` の共通化（Clean Architecture）**:
+   - `apex_client.py`（APEX通信）と `firestore_repo.py`（Firestore操作）を独立させ、Web と Jobs の両方からインポートして利用。コードの重複を排除。
+2. **`jobs/` によるバッチ責務の明確化**:
+   - Cloud Run Jobs で実行するスクリプトの実体を `jobs/` 配下に集約。Django のカスタムコマンド（`manage.py`）からもこのロジックを呼び出せるようにして二重化を防止。
+3. **1コンテナ・複数ロール（FinOps / CI/CD 最適化）**:
+   - Web 実行時はデフォルトの Gunicorn を起動し、Jobs 実行時はコンテナのコマンド引数でバッチを実行。ビルド・デプロイパイプラインを1本化。
 
 ---
 
@@ -148,45 +176,46 @@ apex_sentinel/
 ### Phase 1: データベース・基盤準備
 - [x] **Task 1.1: Oracle APEX ORDS REST API 構築・疎通確認**
   - GET エンドポイント作成、curl 疎通テスト完了（[oracle_apex_ords_setup.md](oracle_apex_ords_setup.md)）
-- [ ] **Task 1.2: Neon アカウント開設 & PostgreSQL インスタンス作成**
-  - プロジェクト作成（リージョン: 東京 or シンガポール）
-  - 接続文字列（`DATABASE_URL`）の取得（Pooled URL / Direct URL）
-  - 詳細手順: [neon_integration_guide.md](neon_integration_guide.md)
-- [ ] **Task 1.3: Google Cloud 環境準備**
+- [x] **Task 1.2: Neon アカウント開設 & PostgreSQL インスタンス作成**
+  - プロジェクト作成（東京リージョン `AWS ap-northeast-1`）
+  - Pooled connection 接続文字列（`DATABASE_URL`）の取得完了（[neon_integration_guide.md](neon_integration_guide.md)）
+- [x] **Task 1.3: Google Cloud 環境準備**
   - GCP プロジェクト作成
   - Firestore 有効化（Native モード、東京 `asia-northeast1`）
-  - Secret Manager 有効化（`DATABASE_URL`, `DJANGO_SECRET_KEY` 等を格納）
-  - サービスアカウント作成（Cloud Run 用: Secret Manager 閲覧、Firestore 読み書き権限）
+  - `gcloud auth application-default login` によるローカル疎通完了
 
 ### Phase 2: Django プロジェクト基盤実装
-- [ ] **Task 2.1: Python 依存パッケージ定義 (`requirements.txt`)**
-  - `django`, `psycopg[binary]`, `dj-database-url`, `google-cloud-firestore`, `requests`, `gunicorn`, `whitenoise`
-- [ ] **Task 2.2: Django 初期化 & 設定 (`config/settings.py`)**
+- [x] **Task 2.1: パッケージ管理の uv 化 & 依存定義 (`pyproject.toml`, `uv.lock`)**
+  - `django`, `psycopg[binary]`, `dj-database-url`, `google-cloud-firestore`, `requests`, `gunicorn`, `whitenoise`, `python-dotenv` 導入完了
+- [x] **Task 2.2: セキュリティ規約と環境変数テンプレートの策定**
+  - `AGENTS.md`, `.geminiignore`, `.cursorignore`, `.aiignore`, `.env.example` の作成完了
+- [x] **Task 2.3: フォルダ構成整備 & Django 設定 (`config/settings.py`)**
+  - `config/`, `monitor/`, `jobs/`, `services/` の作成
   - `dj-database-url` による Neon (本番) / SQLite (ローカル) の自動フォールバック設定
   - `whitenoise` による静的ファイル配信設定
-- [ ] **Task 2.3: 初回マイグレーション & 管理者アカウント作成**
-  - Neon への `migrate` 実行確認
-  - スーパーユーザー作成（`createsuperuser`）および Django Admin ログイン検証
+- [x] **Task 2.4: 初回マイグレーション & 管理者アカウント作成**
+  - Neon への `uv run python manage.py migrate` 完了
+  - スーパーユーザー作成（`createsuperuser`）完了
 
 ### Phase 3: コア機能実装（バッチ & ダッシュボード）
-- [ ] **Task 3.1: APEX HTTP クライアント実装 (`monitor/services/apex_client.py`)**
-  - タイムアウト設定、レスポンスタイム計測、ステータス判定
-- [ ] **Task 3.2: Firestore リポジトリ実装 (`monitor/services/firestore_repo.py`)**
-  - ログ保存（`save_log`）、直近ログ取得（`get_recent_logs`）
-- [ ] **Task 3.3: バッチコマンド実装 (`monitor/management/commands/check_apex.py`)**
-  - APEX ヘルスチェック実行 $\to$ Firestore 保存の単体実行コマンド
-- [ ] **Task 3.4: ダッシュボード画面 & REST API 実装**
+- [x] **Task 3.1: APEX HTTP クライアント実装 (`services/apex_client.py`)**
+  - タイムアウト設定、レスポンスタイム計測、ステータス判定（疎通確認済）
+- [x] **Task 3.2: Firestore リポジトリ実装 (`services/firestore_repo.py`)**
+  - ログ保存（`save_log`）、直近ログ取得（`get_recent_logs`）（疎通確認済）
+- [x] **Task 3.3: バッチジョブ実装 (`jobs/check_apex.py`) & Django コマンド連携**
+  - APEX ヘルスチェック実行 $\to$ Firestore 保存（実行成功）
+- [x] **Task 3.4: ダッシュボード画面 & REST API 実装**
   - 直近5日稼働インジケーター（Tailwind CSS）
   - 技術解説セクション（構成図・Polyglot Persistence 選定理由）
 
 ### Phase 4: コンテナ化 & デプロイ
 - [ ] **Task 4.1: Dockerfile & .dockerignore 作成**
-  - マルチステージビルド、軽量 Python イメージ選定
+  - uv ベースの超高速マルチステージビルド設定
 - [ ] **Task 4.2: Cloud Run Service (Web) デプロイ**
   - Secret Manager 連携（Neon 接続文字列、Django 秘密鍵）
   - カスタムドメインまたは Cloud Run URL での疎通・Admin 動作確認
 - [ ] **Task 4.3: Cloud Run Jobs (バッチ) デプロイ**
-  - `python manage.py check_apex` 実行ジョブの作成
+  - `check_apex` 実行ジョブの作成
 - [ ] **Task 4.4: Cloud Scheduler 定期実行設定**
   - 1日1回（JST 09:00）の Cloud Run Jobs トリガー設定
 - [ ] **Task 4.5: E2E テスト & 監視自動化の検証**
