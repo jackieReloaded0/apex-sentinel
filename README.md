@@ -70,6 +70,30 @@ uv run python manage.py check_apex
 
 ---
 
+## 🐳 Docker Compose による完全ローカル起動
+
+Neon や Google Cloud Firestore に接続せず、すべてローカルコンテナ（PostgreSQL + Firestore Emulator + Web）で自己完結させて起動することも可能です。
+
+```bash
+# 全コンテナのビルド & 起動 (PostgreSQL, Firestore Emulator, Django Web)
+docker compose up -d
+
+# ログの確認
+docker compose logs -f web
+
+# バッチ処理（APEX監視 -> ローカルFirestore保存）の実行テスト
+docker compose run --rm batch
+```
+
+起動後、ブラウザで [http://127.0.0.1:8080/](http://127.0.0.1:8080/) にアクセスしてダッシュボードを確認できます。
+
+コンテナの停止:
+```bash
+docker compose down
+```
+
+---
+
 ## 📚 ドキュメント
 
 - [企画・設計書 (Portfolio Project Plan)](docs/portfolio_project_plan.md)

@@ -209,8 +209,16 @@ apex-sentinel/
   - 技術解説セクション（構成図・Polyglot Persistence 選定理由）
 
 ### Phase 4: コンテナ化 & デプロイ
-- [ ] **Task 4.1: Dockerfile & .dockerignore 作成**
-  - uv ベースの超高速マルチステージビルド設定
+- [x] **Task 4.1: Dockerfile & .dockerignore 作成 & Docker Compose ローカル検証**
+  - uv ベースの超高速マルチステージビルド設定 (`Dockerfile`)
+  - Web (Gunicorn) / Batch (Jobs) 兼用 1 イメージ設計
+  - WhiteNoise 静的ファイル事前収集 (`collectstatic`) 組み込み
+  - ローカル完全自己完結用の `docker-compose.yml` 作成
+    - `db`: `postgres:16-alpine` (ローカル用 PostgreSQL)
+    - `firestore`: `google/cloud-sdk:emulators` (ローカル用 Firestore Emulator)
+    - `web`: Django Web アプリケーション (自動マイグレーション & Gunicorn 起動)
+    - `batch`: バッチテスト用コンテナ (`python manage.py check_apex`)
+  - ローカルでのコンテナビルド・起動・バッチ実行・Web疎通 (HTTP 200) の検証完了
 - [ ] **Task 4.2: Cloud Run Service (Web) デプロイ**
   - Secret Manager 連携（Neon 接続文字列、Django 秘密鍵）
   - カスタムドメインまたは Cloud Run URL での疎通・Admin 動作確認

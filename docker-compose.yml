@@ -1,0 +1,90 @@
+services:
+  # ---------------------------------------------------------------------------
+  # 1. ローカル用 PostgreSQL (Neon の代替ローカルコンテナ)
+  # ---------------------------------------------------------------------------
+  db:
+    image: postgres:16-alpine
+    container_name: apex-sentinel-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: apex_sentinel
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d apex_sentinel"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # 2. ローカル用 Firestore Emulator (GCP Firestore の代替エミュレータ)
+  # ---------------------------------------------------------------------------
+  firestore:
+    image: google/cloud-sdk:emulators
+    container_name: apex-sentinel-firestore
+    restart: unless-stopped
+    command: gcloud beta emulators firestore start --host-port=0.0.0.0:8085
+    ports:
+      - "8085:8085"
+
+  # ---------------------------------------------------------------------------
+  # 3. Django Web サービス (Cloud Run Service のローカル再現)
+  # ---------------------------------------------------------------------------
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: apex-sentinel-web
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - DEBUG=True
+      - SECRET_KEY=local-docker-compose-secret-key-32bytes-long
+      - ALLOWED_HOSTS=*
+      - CSRF_TRUSTED_ORIGINS=http://localhost:8080,http://127.0.0.1:8080
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/apex_sentinel
+      - FIRESTORE_EMULATOR_HOST=firestore:8085
+      - GOOGLE_CLOUD_PROJECT=apex-sentinel-local
+      - APEX_HEALTH_URL=${APEX_HEALTH_URL:-https://apex.oracle.com}
+    depends_on:
+      db:
+        condition: service_healthy
+      firestore:
+        condition: service_started
+    # 起動時に自動でローカルDBにマイグレーションを適用してから Gunicorn を起動
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             exec gunicorn config.wsgi:application --bind 0.0.0.0:8080 --workers 2 --threads 4 --timeout 60"
+
+  # ---------------------------------------------------------------------------
+  # 4. バッチ実行確認用コンテナ (Cloud Run Jobs のローカル再現)
+  # 実行例: docker compose run --rm batch
+  # ---------------------------------------------------------------------------
+  batch:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: apex-sentinel-batch
+    environment:
+      - DEBUG=True
+      - SECRET_KEY=local-docker-compose-secret-key-32bytes-long
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/apex_sentinel
+      - FIRESTORE_EMULATOR_HOST=firestore:8085
+      - GOOGLE_CLOUD_PROJECT=apex-sentinel-local
+      - APEX_HEALTH_URL=${APEX_HEALTH_URL:-https://apex.oracle.com}
+    depends_on:
+      db:
+        condition: service_healthy
+      firestore:
+        condition: service_started
+    command: python manage.py check_apex
+    profiles:
+      - batch
+
+volumes:
+  postgres_data:
