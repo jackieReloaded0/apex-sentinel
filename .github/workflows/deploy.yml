@@ -1,0 +1,62 @@
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  PROJECT_ID: project-9d27efe9-82c4-45c0-abc
+  REGION: asia-northeast1
+  SERVICE_NAME: apex-sentinel-web
+  JOB_NAME: apex-sentinel-batch
+  WIF_PROVIDER: projects/961312396366/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+  # CI/CD デプロイ専用サービスアカウント (Deployer)
+  DEPLOYER_SA: github-actions-deployer@project-9d27efe9-82c4-45c0-abc.iam.gserviceaccount.com
+  # アプリケーション実行用サービスアカウント (Runtime)
+  APP_SA: apex-sentinel-dev@project-9d27efe9-82c4-45c0-abc.iam.gserviceaccount.com
+
+jobs:
+  deploy:
+    name: Build & Deploy to Cloud Run
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Workload Identity Federation (OIDC) 認証に必須
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 1. GitHub OIDC を使って「デプロイ専用サービスアカウント」に一時ログイン
+      - name: Authenticate to Google Cloud (WIF / Keyless)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.DEPLOYER_SA }}
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      # 2. Cloud Run Service (Web) をビルド & デプロイ (実行用には APP_SA をアタッチ)
+      - name: Deploy Cloud Run Service (Web)
+        run: |
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --source . \
+            --region ${{ env.REGION }} \
+            --platform managed \
+            --allow-unauthenticated \
+            --service-account="${{ env.APP_SA }}" \
+            --min-instances 0 \
+            --max-instances 2 \
+            --memory 512Mi \
+            --set-env-vars="DEBUG=False,ALLOWED_HOSTS=*,CSRF_TRUSTED_ORIGINS=https://*.run.app,GOOGLE_CLOUD_PROJECT=${{ env.PROJECT_ID }}" \
+            --set-secrets="DATABASE_URL=DATABASE_URL:latest,SECRET_KEY=DJANGO_SECRET_KEY:latest"
+
+      # 3. Cloud Run Jobs (Batch) のコンテナイメージを最新に同期
+      - name: Update Cloud Run Jobs (Batch Image)
+        run: |
+          IMAGE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} --region ${{ env.REGION }} --format='value(spec.template.spec.containers[0].image)')
+          gcloud run jobs update ${{ env.JOB_NAME }} \
+            --image="${IMAGE_URL}" \
+            --region ${{ env.REGION }}

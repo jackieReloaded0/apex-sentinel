@@ -23,6 +23,13 @@ SECRET_KEY = os.environ.get(
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get("DEBUG", "True").lower() in ("true", "1", "yes")
 
+# Django 管理画面 (/admin) のアクセス制御
+# ローカル開発時 (DEBUG=True) は自動で有効化。本番デプロイ環境では 404 にして隠蔽 (環境変数で明示的に有効化も可能)
+ENABLE_DJANGO_ADMIN = os.environ.get(
+    "ENABLE_DJANGO_ADMIN",
+    str(DEBUG)
+).lower() in ("true", "1", "yes")
+
 # Cloud Run や開発ドメイン
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "*").split(",")
 CSRF_TRUSTED_ORIGINS = [
