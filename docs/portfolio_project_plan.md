@@ -251,7 +251,7 @@ apex-sentinel/
   - 画面内に Mermaid.js によるアーキテクチャ構成図を描画し、面談官や評価者が一目で構造を把握できるように改修
   - 直近 5 回のヘルスチェック実績インジケーターおよび Polyglot Persistence 解説の整理
 - [x] **Task 5.4: pytest テストスイートの導入と GitHub Actions CI 自動実行**
-  - `pytest`, `pytest-django`, `pytest-mock` によるテスト基盤構築
+  - `pytest`, `pytest-django`, `pytest-mock` によるテスト基盤構築（実行コマンド: `uv run pytest`）
   - インメモリ SQLite (`config/settings_test.py`) による高速かつ安全な独立テスト環境（0.45 秒実行）
   - クライアント通信、Firestore 操作、ビュー、管理者アクセス制御（404）の回帰テスト完備
   - `.github/workflows/ci.yml` による PR / push 時の自動テスト実行（15 秒完了）
