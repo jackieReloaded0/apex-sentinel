@@ -239,10 +239,13 @@ apex-sentinel/
   - 環境変数 `ENABLE_DJANGO_ADMIN` によるハイブリッド制御導入
   - 本番環境（`DEBUG=False` 時）では `/admin/` ルーティング自体を除外して 404 とし完全隠蔽
   - ローカル開発環境（`DEBUG=True`）でのみ管理画面アクセスを許可
-- [ ] **Task 5.2: GitHub Actions による main マージ時自動デプロイ (CI/CD)**
-  - Workload Identity Federation または GCP サービスアカウントによる安全な認証
-  - `main` ブランチへの PR マージ時に、Cloud Build $\to$ Cloud Run Service 自動デプロイパイプライン構築
-  - `develop` ブランチでの開発・検証 $\to$ PR による `main` 反映のフロー確立
+- [x] **Task 5.2: GitHub Actions による main マージ時自動デプロイ (CI/CD)**
+  - Workload Identity Federation (WIF) による OIDC キーレス認証の導入
+  - CI/CD デプロイ専用サービスアカウント（`github-actions-deployer`）の最小権限分離
+  - `main` ブランチへの PR マージ時に、Cloud Run Service (Web) 自動デプロイ & Cloud Run Jobs (Batch) イメージ自動同期
+  - GitHub Actions コマンドの最新バージョン追従（Node.js 24 対応: `checkout@v7`, `auth@v3`, `setup-gcloud@v3`）
+  - Dockerfile のベースイメージ・ビルドツール（Python, uv）の sha256 ダイジェスト固定によるサプライチェーン堅牢化
+  - `develop` ブランチでの開発・検証 $\to$ PR による `main` 反映のフロー確立完了
 - [x] **Task 5.3: ダッシュボード UI の大幅改善**
   - トップタイトルを「サービス管理画面」に変更し、本サイトの概要・目的をファーストビューに配置
   - 画面内に Mermaid.js によるアーキテクチャ構成図を描画し、面談官や評価者が一目で構造を把握できるように改修

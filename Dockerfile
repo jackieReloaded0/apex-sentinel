@@ -7,10 +7,10 @@
 # -----------------------------------------------------------------------------
 # 1. ビルドステージ (依存関係の解決・インストール)
 # -----------------------------------------------------------------------------
-FROM python:3.14-slim AS builder
+FROM python:3.14-slim@sha256:9aaa474097d094040649f2162a627c0049b408f52138d980916788d80f04802f AS builder
 
-# uv バイナリを公式イメージから取得
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+# uv バイナリを公式イメージから取得 (ダイジェスト固定)
+COPY --from=ghcr.io/astral-sh/uv:latest@sha256:d3b601f0c7b118bc1753febf7c41cc80981df678445e0254284eecf84db79a7d /uv /bin/uv
 
 # Python バイトコードの事前コンパイルを有効化
 ENV UV_COMPILE_BYTECODE=1 \
@@ -28,7 +28,7 @@ RUN uv sync --frozen --no-install-project --no-dev
 # -----------------------------------------------------------------------------
 # 2. 実行用ランタイムステージ (軽量本番イメージ)
 # -----------------------------------------------------------------------------
-FROM python:3.14-slim AS runtime
+FROM python:3.14-slim@sha256:9aaa474097d094040649f2162a627c0049b408f52138d980916788d80f04802f AS runtime
 
 # Python ランタイム最適化
 ENV PYTHONUNBUFFERED=1 \
