@@ -140,3 +140,5 @@ docker compose down
 - [企画・設計書 (Portfolio Project Plan)](docs/portfolio_project_plan.md)
 - [Neon (Serverless PostgreSQL) 導入・連携ガイド](docs/neon_integration_guide.md)
 - [Oracle APEX ORDS 設定仕様書 & 手順書](docs/oracle_apex_ords_setup.md)
+- [CI/CD & 自動テスト ワークフロー定義](.github/workflows/ci.yml)
+- [Dependabot セキュリティ保守設定](.github/dependabot.yml)
