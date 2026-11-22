@@ -15,6 +15,8 @@ env:
   DEPLOYER_SA: github-actions-deployer@project-9d27efe9-82c4-45c0-abc.iam.gserviceaccount.com
   # アプリケーション実行用サービスアカウント (Runtime)
   APP_SA: apex-sentinel-dev@project-9d27efe9-82c4-45c0-abc.iam.gserviceaccount.com
+  # 監視対象 Oracle APEX ORDS Ping エンドポイント
+  APEX_HEALTH_URL: https://ge379c0699018e7-autonomousdbapex2.adb.ap-osaka-1.oraclecloudapps.com/ords/nakamura01/sentinel/ping
 
 jobs:
   deploy:
@@ -50,7 +52,7 @@ jobs:
             --min-instances 0 \
             --max-instances 2 \
             --memory 512Mi \
-            --set-env-vars="DEBUG=False,ALLOWED_HOSTS=*,CSRF_TRUSTED_ORIGINS=https://*.run.app,GOOGLE_CLOUD_PROJECT=${{ env.PROJECT_ID }}" \
+            --set-env-vars="DEBUG=False,ALLOWED_HOSTS=*,CSRF_TRUSTED_ORIGINS=https://*.run.app,GOOGLE_CLOUD_PROJECT=${{ env.PROJECT_ID }},APEX_HEALTH_URL=${{ env.APEX_HEALTH_URL }}" \
             --set-secrets="DATABASE_URL=DATABASE_URL:latest,SECRET_KEY=DJANGO_SECRET_KEY:latest"
 
       # 3. Cloud Run Jobs (Batch) のコンテナイメージを最新に同期
