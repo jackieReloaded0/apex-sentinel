@@ -51,21 +51,23 @@ flowchart TD
     end
 
     subgraph WebApp["ポートフォリオ Web (Cloud Run Service)"]
-        CRS["Django Web Application<br/>- 直近5日ステータス可視化 UI<br/>- REST API (JSON)<br/>- エンジニア実績解説<br/>- Django Admin (管理画面)"]
+        CRS["Django Web Application<br/>- 直近5日ステータス可視化 UI<br/>- ⚡ 手動即時ヘルスチェック機能<br/>- REST API (JSON)<br/>- エンジニア実績解説<br/>- Django Admin (管理画面)"]
     end
 
     subgraph Client["閲覧者 / 評価者 / 管理者"]
         Browser["ブラウザ (面談官・エンジニア・管理者)"]
     end
 
-    %% バッチフロー
+    %% 定期バッチフロー
     CS -->|"HTTP / OIDC 起動"| CRJ
-    CRJ -->|"1. Ping (HTTP GET)"| APEX
+    CRJ -->|"1. 定期 Ping (HTTP GET)"| APEX
     APEX -->|"2. レスポンス (200 OK / Time)"| CRJ
     CRJ -->|"3. 時系列ログ保存"| FS
 
-    %% Webフロー
-    Browser -->|"閲覧・管理画面アクセス"| CRS
+    %% Web 手動実行 & 閲覧フロー
+    Browser -->|"閲覧・手動チェック実行"| CRS
+    CRS -->|"⚡ 手動 Ping (HTTP GET)"| APEX
+    CRS -->|"即時ログ追記"| FS
     CRS -->|"直近ログクエリ"| FS
     CRS -->|"認証・セッション・管理データ読み書き"| NEON
     CRS -->|"HTML / JSON レスポンス"| Browser

@@ -177,11 +177,17 @@ flowchart LR
         CRS["🌐 Cloud Run Service<br/>(Django Web App)"]
     end
 
+    %% 定期バッチフロー
     CS -->|"自動起動"| CRJ
-    CRJ -->|"Ping (HTTP GET)"| APEX
+    CRJ -->|"定期 Ping (HTTP GET)"| APEX
     APEX -->|"200 OK (ms)"| CRJ
     CRJ -->|"時系列ログ追記"| FS
 
+    %% 手動オンデマンド監視フロー
+    CRS -->|"⚡ 手動 Ping (HTTP GET)"| APEX
+    CRS -->|"即時ログ追記"| FS
+
+    %% Web 表示フロー
     CRS -->|"ログ取得・可視化"| FS
     CRS -->|"セッション・認証管理"| NEON
         </pre>
