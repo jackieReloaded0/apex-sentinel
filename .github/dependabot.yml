@@ -40,6 +40,7 @@ updates:
   # ---------------------------------------------------------------------------
   # 3. Dockerfile ベースイメージ (マイナー・パッチ更新のみ PR 作成)
   # ※ Dockerfile は Security updates 対象外のため、定期更新でメジャーを除外して運用
+  # ※ Python は 3.14 系列に固定するため、マイナー更新 (3.15 等) も除外
   # ---------------------------------------------------------------------------
   - package-ecosystem: "docker"
     directory: "/"
@@ -50,9 +51,14 @@ updates:
       timezone: "Asia/Tokyo"
     open-pull-requests-limit: 5
     ignore:
+      # 全体: メジャーアップデートを除外
       - dependency-name: "*"
         update-types:
           - "version-update:semver-major"
+      # Python イメージ: 3.14 に固定 (3.15 等のマイナーアップデートを除外)
+      - dependency-name: "python"
+        update-types:
+          - "version-update:semver-minor"
     groups:
       docker-dependencies:
         patterns:

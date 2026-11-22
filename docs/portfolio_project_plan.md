@@ -254,7 +254,7 @@ apex-sentinel/
   - `pytest`, `pytest-django`, `pytest-mock` によるテスト基盤構築（実行コマンド: `uv run pytest`）
   - インメモリ SQLite (`config/settings_test.py`) による高速かつ安全な独立テスト環境（0.45 秒実行）
   - クライアント通信、Firestore 操作、ビュー、管理者アクセス制御（404）の回帰テスト完備
-  - `.github/workflows/ci.yml` による PR / push 時の自動テスト実行（15 秒完了）
+  - `.github/workflows/ci.yml` による PR / push 時の pytest テスト自動実行および Dockerfile ビルド検証（`docker build`）を導入
 - [x] **Task 5.5: 手動ヘルスチェック実行機能の実装（押下後数秒非活性）**
   - `POST /api/check-apex/` による即時ヘルスチェック＆ Firestore 保存
   - UI への「今すぐ手動チェック」ボタンおよび非同期スピナー、ステータス表示の追加
