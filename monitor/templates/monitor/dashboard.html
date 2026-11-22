@@ -115,7 +115,11 @@
           </div>
         {% else %}
           <div class="text-center py-8 text-slate-400 text-sm bg-slate-950 rounded-xl border border-slate-800">
-            ログデータ取得待機中
+            {% if error_message %}
+              <span class="text-amber-400">{{ error_message }}</span>
+            {% else %}
+              ログデータ取得待機中
+            {% endif %}
           </div>
         {% endif %}
       </div>
