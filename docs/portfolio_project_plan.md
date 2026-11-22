@@ -219,12 +219,17 @@ apex-sentinel/
     - `web`: Django Web アプリケーション (自動マイグレーション & Gunicorn 起動)
     - `batch`: バッチテスト用コンテナ (`python manage.py check_apex`)
   - ローカルでのコンテナビルド・起動・バッチ実行・Web疎通 (HTTP 200) の検証完了
-- [ ] **Task 4.2: Cloud Run Service (Web) デプロイ**
+- [x] **Task 4.2: Cloud Run Service (Web) デプロイ**
   - Secret Manager 連携（Neon 接続文字列、Django 秘密鍵）
-  - カスタムドメインまたは Cloud Run URL での疎通・Admin 動作確認
-- [ ] **Task 4.3: Cloud Run Jobs (バッチ) デプロイ**
-  - `check_apex` 実行ジョブの作成
-- [ ] **Task 4.4: Cloud Scheduler 定期実行設定**
-  - 1日1回（JST 09:00）の Cloud Run Jobs トリガー設定
-- [ ] **Task 4.5: E2E テスト & 監視自動化の検証**
-  - バッチ実行 $\to$ Firestore 保存 $\to$ Web ダッシュボード反映の一連フロー確認
+  - Cloud Run Service 本番デプロイ完了
+  - 公開 URL: `https://apex-sentinel-web-961312396366.asia-northeast1.run.app`
+  - ダッシュボード表示 & REST API & Django Admin 疎通確認完了 (HTTP 200)
+- [x] **Task 4.3: Cloud Run Jobs (バッチ) デプロイ**
+  - `apex-sentinel-batch` ジョブの作成
+  - 環境変数 `APEX_HEALTH_URL` 連携
+  - クラウド上でのバッチ手動実行テスト成功（APEX 疎通 $\to$ Firestore 保存確認済）
+- [x] **Task 4.4: Cloud Scheduler 定期実行設定**
+  - 1日1回（JST 09:00）の Cloud Run Jobs トリガー設定完了 (`apex-sentinel-daily-check`)
+  - サービスアカウント権限連携 (`roles/run.invoker`)
+- [x] **Task 4.5: E2E テスト & 監視自動化の検証**
+  - Cloud Scheduler 手動トリガー $\to$ Cloud Run Jobs 自動起動 $\to$ Oracle APEX 疎通 (200 OK) $\to$ Firestore 保存 $\to$ Web ダッシュボード反映の一連フロー動作検証完了（全自動 $0 運用達成）

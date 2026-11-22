@@ -23,10 +23,12 @@ Oracle Cloud Free Tier の Autonomous Database (Oracle APEX) は、約7日間の
 ## 🏗️ アーキテクチャ
 
 - **監視対象**: Oracle APEX (Autonomous Database / ORDS REST API)
-- **定期実行バッチ**: Google Cloud Run Jobs + Cloud Scheduler（1日1回）
+- **定期実行バッチ**: Google Cloud Run Jobs + Cloud Scheduler（毎日 09:00 JST 自動実行）
 - **時系列メトリクス保持**: Google Cloud Firestore (NoSQL, Native Mode)
 - **管理情報・認証・セッション**: Neon (Serverless PostgreSQL, Scale-to-Zero)
 - **Web API & ダッシュボード**: Google Cloud Run Service (Django)
+  - 🌐 **本番公開 URL**: [https://apex-sentinel-web-961312396366.asia-northeast1.run.app](https://apex-sentinel-web-961312396366.asia-northeast1.run.app)
+  - 🛡️ **FinOps / $0 運用**: 常時起動インスタンス 0 台。完全サーバーレス・自動スリープ構成。
 
 ---
 
