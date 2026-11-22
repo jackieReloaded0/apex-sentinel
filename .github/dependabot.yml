@@ -1,0 +1,61 @@
+# =============================================================================
+# Dependabot Configuration for Apex-Sentinel
+# - セキュリティ & 依存関係の保守自動化
+# - PR 乱立を防ぐグループ化（Grouping）の採用
+# - Docker イメージは破壊的変更を避けるためマイナー・パッチアップデートのみ許可
+# =============================================================================
+
+version: 2
+updates:
+  # ---------------------------------------------------------------------------
+  # 1. GitHub Actions のワークフロー依存関係
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  # ---------------------------------------------------------------------------
+  # 2. Python (uv / pip) 依存パッケージ
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    open-pull-requests-limit: 5
+    groups:
+      python-dependencies:
+        patterns:
+          - "*"
+
+  # ---------------------------------------------------------------------------
+  # 3. Dockerfile ベースイメージ
+  # ※ メジャーバージョンの破壊的変更を自動除外し、マイナー・パッチのみ PR 作成
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - "version-update:semver-major"
+    groups:
+      docker-dependencies:
+        patterns:
+          - "*"

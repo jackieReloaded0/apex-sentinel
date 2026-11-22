@@ -259,7 +259,7 @@ apex-sentinel/
   - `POST /api/check-apex/` による即時ヘルスチェック＆ Firestore 保存
   - UI への「今すぐ手動チェック」ボタンおよび非同期スピナー、ステータス表示の追加
   - 押下後 5 秒間の非活性カウントダウン（disabled）による過剰リクエスト・スパム防止
-- [ ] **Task 5.6: Dependabot によるセキュリティ自動更新とグループ化・Docker バージョン制御**
-  - `.github/dependabot.yml` の導入
-  - セキュリティアップデートのグループ化（GitHub Actions, Python パッケージ）
-  - Dockerfile ベースイメージのメジャーアップデート除外（マイナー・パッチのみ PR 作成）制御
+- [x] **Task 5.6: Dependabot によるセキュリティ自動更新とグループ化・Docker バージョン制御**
+  - `.github/dependabot.yml` の導入完了
+  - セキュリティアップデートおよび週次保守のグループ化（GitHub Actions, Python, Docker）
+  - Dockerfile ベースイメージのメジャーアップデート除外（`semver-major` ignore によるマイナー・パッチのみ PR 化）設定完了
