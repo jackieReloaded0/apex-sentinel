@@ -91,10 +91,27 @@
 
       <!-- 直近5回分の実行履歴インジケーター -->
       <div class="pt-6">
-        <div class="flex items-center justify-between mb-4">
-          <h4 class="text-sm font-medium text-slate-300">直近 5 回のヘルスチェック稼働実績</h4>
-          <span class="text-xs text-slate-500">毎日 09:00 JST 定期自動実行</span>
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div class="flex items-center space-x-2">
+            <h4 class="text-sm font-medium text-slate-300">直近 5 回のヘルスチェック稼働実績</h4>
+            <span class="text-xs text-slate-500 hidden sm:inline">(毎日 09:00 JST 定期自動実行)</span>
+          </div>
+          <!-- 手動ヘルスチェック実行ボタン (押下後数秒非活性) -->
+          <div class="flex items-center space-x-2">
+            <span id="check-status-msg" class="text-xs font-medium hidden"></span>
+            <button id="manual-check-btn"
+                    onclick="triggerManualCheck()"
+                    class="inline-flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white shadow transition disabled:opacity-50 disabled:cursor-not-allowed">
+              <svg id="btn-spinner" class="hidden animate-spin h-3.5 w-3.5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span id="btn-icon">⚡</span>
+              <span id="btn-text">今すぐ手動チェック</span>
+            </button>
+          </div>
         </div>
+        {% csrf_token %}
         {% if recent_logs %}
           <div class="grid grid-cols-1 sm:grid-cols-5 gap-3">
             {% for log in recent_logs %}
@@ -115,7 +132,11 @@
           </div>
         {% else %}
           <div class="text-center py-8 text-slate-400 text-sm bg-slate-950 rounded-xl border border-slate-800">
-            ログデータ取得待機中
+            {% if error_message %}
+              <span class="text-amber-400">{{ error_message }}</span>
+            {% else %}
+              ログデータ取得待機中
+            {% endif %}
           </div>
         {% endif %}
       </div>
@@ -198,6 +219,80 @@ flowchart LR
   <footer class="border-t border-slate-800 py-6 text-center text-xs text-slate-500">
     Apex-Sentinel サービス管理画面 &copy; 2026 | Built with Django, Firestore, Neon &amp; Google Cloud Run
   </footer>
+
+  <!-- 手動ヘルスチェック用スクリプト -->
+  <script>
+    function getCsrfToken() {
+      const input = document.querySelector('[name=csrfmiddlewaretoken]');
+      if (input) return input.value;
+      const match = document.cookie.match(/csrftoken=([\w-]+)/);
+      return match ? match[1] : '';
+    }
+
+    async function triggerManualCheck() {
+      const btn = document.getElementById('manual-check-btn');
+      const spinner = document.getElementById('btn-spinner');
+      const icon = document.getElementById('btn-icon');
+      const text = document.getElementById('btn-text');
+      const statusMsg = document.getElementById('check-status-msg');
+
+      // 1. ボタンを即座に非活性化しスピナー表示
+      btn.disabled = true;
+      spinner.classList.remove('hidden');
+      icon.classList.add('hidden');
+      text.textContent = 'チェック中...';
+      statusMsg.classList.add('hidden');
+
+      try {
+        const response = await fetch("{% url 'monitor:manual_check' %}", {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+          }
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.status === 'ok') {
+          const res = data.result;
+          statusMsg.textContent = `✅ 成功: ${res.status_code} OK (${res.response_time_ms}ms)`;
+          statusMsg.className = 'text-xs font-semibold text-emerald-400';
+          statusMsg.classList.remove('hidden');
+        } else {
+          statusMsg.textContent = `❌ エラー: ${data.message || '実行失敗'}`;
+          statusMsg.className = 'text-xs font-semibold text-rose-400';
+          statusMsg.classList.remove('hidden');
+        }
+      } catch (err) {
+        statusMsg.textContent = `❌ 通信エラー: ${err.message}`;
+        statusMsg.className = 'text-xs font-semibold text-rose-400';
+        statusMsg.classList.remove('hidden');
+      } finally {
+        spinner.classList.add('hidden');
+        icon.classList.remove('hidden');
+
+        // 2. 押下後 5 秒間の非活性カウントダウン
+        let cooldown = 5;
+        text.textContent = `待機中 (${cooldown}s)`;
+
+        const timer = setInterval(() => {
+          cooldown -= 1;
+          if (cooldown > 0) {
+            text.textContent = `待機中 (${cooldown}s)`;
+          } else {
+            clearInterval(timer);
+            btn.disabled = false;
+            text.textContent = '今すぐ手動チェック';
+            // 正常完了していれば最新状態を反映するためにリロード
+            if (statusMsg.textContent.includes('成功')) {
+              window.location.reload();
+            }
+          }
+        }, 1000);
+      }
+    }
+  </script>
 
 </body>
 </html>

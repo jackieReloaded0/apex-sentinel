@@ -1,6 +1,8 @@
 import logging
 from django.shortcuts import render
 from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from services.apex_client import ApexClient
 from services.firestore_repo import FirestoreRepository
 
 logger = logging.getLogger(__name__)
@@ -39,3 +41,29 @@ def status_api_view(request):
         return JsonResponse({"status": "ok", "logs": recent_logs})
     except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
+
+@require_POST
+def manual_check_view(request):
+    """
+    手動で即時ヘルスチェックを実行し、結果を Firestore に保存して返却する API ビュー。
+    """
+    try:
+        client = ApexClient()
+        result = client.check_health()
+
+        repo = FirestoreRepository()
+        doc_id = repo.save_log(result)
+        result["id"] = doc_id
+
+        return JsonResponse({
+            "status": "ok",
+            "message": "ヘルスチェックが正常に完了しました。",
+            "result": result
+        })
+    except Exception as e:
+        logger.error(f"Manual health check failed: {e}")
+        return JsonResponse({
+            "status": "error",
+            "message": f"ヘルスチェック実行に失敗しました: {str(e)}"
+        }, status=500)

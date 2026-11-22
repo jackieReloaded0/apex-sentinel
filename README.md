@@ -72,6 +72,36 @@ uv run python manage.py check_apex
 
 ---
 
+## 🧪 テストの実行 (pytest)
+
+本プロジェクトでは `pytest` + `pytest-django` + `pytest-mock` による自動テストスイートを完備しています。  
+テスト実行時はテスト用設定（`config/settings_test.py`）により、**本番 Neon (PostgreSQL) へのアクセスを自動遮断し、インメモリ SQLite を使用**するため、外部リソースを汚さず高速かつ安全にテストを実行できます。
+
+### 1. 全テストスイートの実行
+```bash
+uv run pytest
+```
+（※ 単体テスト、結合テスト、セキュリティアクセス制御テストなど計 14 件が約 0.5 秒で実行されます）
+
+### 2. 詳細ログ付き・特定ファイルのテスト実行
+```bash
+# 詳細出力 (-v) と標準出力キャプチャ無効 (-s)
+uv run pytest -v -s
+
+# 特定のテストモジュールのみ実行
+uv run pytest tests/test_views.py
+uv run pytest tests/test_apex_client.py
+uv run pytest tests/test_security.py
+```
+
+### 3. 主なテスト内容
+- **APEX HTTP 通信**: 正常 (200 OK)・異常 (503)・タイムアウト発生時の挙動検証
+- **Firestore リポジトリ**: モックを用いたログ保存・取得クエリの検証
+- **ダッシュボード & API**: 画面描画、手動ヘルスチェック API (`POST /api/check-apex/`)、Firestore 障害時フォールバック
+- **セキュリティ・ルーティング**: 本番モード（`DEBUG=False`）時の Django 管理画面（`/admin/`）404 隠蔽回帰テスト
+
+---
+
 ## 🐳 Docker Compose による完全ローカル起動
 
 Neon や Google Cloud Firestore に接続せず、すべてローカルコンテナ（PostgreSQL + Firestore Emulator + Web）で自己完結させて起動することも可能です。

@@ -12,7 +12,10 @@ class ApexClient:
     """
 
     def __init__(self, target_url: str | None = None, timeout: int = 10):
-        self.target_url = target_url or getattr(settings, "APEX_HEALTH_URL", "")
+        if target_url is not None:
+            self.target_url = target_url
+        else:
+            self.target_url = getattr(settings, "APEX_HEALTH_URL", "")
         self.timeout = timeout
 
     def check_health(self) -> dict:
