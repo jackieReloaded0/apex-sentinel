@@ -59,16 +59,16 @@ flowchart TD
     end
 
     %% バッチフロー
-    CS -->|HTTP / OIDC 起動| CRJ
-    CRJ -->|1. Ping (HTTP GET)| APEX
-    APEX -->|2. レスポンス (200 OK / Time)| CRJ
-    CRJ -->|3. 時系列ログ保存| FS
+    CS -->|"HTTP / OIDC 起動"| CRJ
+    CRJ -->|"1. Ping (HTTP GET)"| APEX
+    APEX -->|"2. レスポンス (200 OK / Time)"| CRJ
+    CRJ -->|"3. 時系列ログ保存"| FS
 
     %% Webフロー
-    Browser -->|閲覧・管理画面アクセス| CRS
-    CRS -->|直近ログクエリ| FS
-    CRS -->|認証・セッション・管理データ読み書き| NEON
-    CRS -->|HTML / JSON レスポンス| Browser
+    Browser -->|"閲覧・管理画面アクセス"| CRS
+    CRS -->|"直近ログクエリ"| FS
+    CRS -->|"認証・セッション・管理データ読み書き"| NEON
+    CRS -->|"HTML / JSON レスポンス"| Browser
 ```
 
 ---
@@ -233,3 +233,17 @@ apex-sentinel/
   - サービスアカウント権限連携 (`roles/run.invoker`)
 - [x] **Task 4.5: E2E テスト & 監視自動化の検証**
   - Cloud Scheduler 手動トリガー $\to$ Cloud Run Jobs 自動起動 $\to$ Oracle APEX 疎通 (200 OK) $\to$ Firestore 保存 $\to$ Web ダッシュボード反映の一連フロー動作検証完了（全自動 $0 運用達成）
+
+### Phase 5: 運用強化・CI/CD・UI改善（運用フェーズ）
+- [x] **Task 5.1: 本番環境での Django 管理画面 (`/admin`) アクセス制限**
+  - 環境変数 `ENABLE_DJANGO_ADMIN` によるハイブリッド制御導入
+  - 本番環境（`DEBUG=False` 時）では `/admin/` ルーティング自体を除外して 404 とし完全隠蔽
+  - ローカル開発環境（`DEBUG=True`）でのみ管理画面アクセスを許可
+- [ ] **Task 5.2: GitHub Actions による main マージ時自動デプロイ (CI/CD)**
+  - Workload Identity Federation または GCP サービスアカウントによる安全な認証
+  - `main` ブランチへの PR マージ時に、Cloud Build $\to$ Cloud Run Service 自動デプロイパイプライン構築
+  - `develop` ブランチでの開発・検証 $\to$ PR による `main` 反映のフロー確立
+- [x] **Task 5.3: ダッシュボード UI の大幅改善**
+  - トップタイトルを「サービス管理画面」に変更し、本サイトの概要・目的をファーストビューに配置
+  - 画面内に Mermaid.js によるアーキテクチャ構成図を描画し、面談官や評価者が一目で構造を把握できるように改修
+  - 直近 5 回のヘルスチェック実績インジケーターおよび Polyglot Persistence 解説の整理
