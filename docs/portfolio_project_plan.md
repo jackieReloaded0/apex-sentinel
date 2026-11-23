@@ -31,44 +31,102 @@
 
 ## 2. 全体システムアーキテクチャ
 
+システム全体の連携構成と、目的別に分離された 2 系統の監視フロー（定期自動監視 / 手動即時監視）です。
+
+### 2.1 全体ハイブリッド構成図
+Cloud Scheduler による定期自動監視と、Web 管理画面からの手動オンデマンド監視を兼ね備えたハイブリッド構成です。
+
 ```mermaid
-flowchart TD
-    subgraph Trigger["定期実行トリガー"]
-        CS["Google Cloud Scheduler<br/>(1日1回 09:00 JST)"]
+flowchart LR
+    subgraph Trigger["定期トリガー"]
+        CS["⏱️ Cloud Scheduler<br/>(毎日 09:00 JST)"]
     end
 
-    subgraph Batch["監視バッチ (Cloud Run Jobs)"]
-        CRJ["Django Batch Worker<br/><code>python manage.py check_apex</code>"]
+    subgraph Batch["監視バッチ"]
+        CRJ["⚡ Cloud Run Jobs<br/>(Django Batch Worker)"]
     end
 
     subgraph Target["監視対象"]
-        APEX["Oracle APEX (ORDS)<br/>REST API Endpoint"]
+        APEX["🏛️ Oracle APEX<br/>(Autonomous DB)"]
     end
 
     subgraph DataStores["データストア群 (Polyglot Persistence)"]
-        FS[("Google Cloud Firestore<br/>(時系列ログ: apex_health_logs)")]
-        NEON[("Neon Serverless PostgreSQL<br/>(管理情報・認証・セッション)")]
+        FS[("🔥 Cloud Firestore<br/>(時系列ログ: NoSQL)")]
+        NEON[("🐘 Neon PostgreSQL<br/>(管理情報・認証: RDB)")]
     end
 
-    subgraph WebApp["ポートフォリオ Web (Cloud Run Service)"]
-        CRS["Django Web Application<br/>- 直近5日ステータス可視化 UI<br/>- REST API (JSON)<br/>- エンジニア実績解説<br/>- Django Admin (管理画面)"]
+    subgraph Web["Web ダッシュボード"]
+        CRS["🌐 Cloud Run Service<br/>(Django Web App)"]
     end
 
-    subgraph Client["閲覧者 / 評価者 / 管理者"]
-        Browser["ブラウザ (面談官・エンジニア・管理者)"]
+    %% 1. 定期バッチフロー
+    CS -->|"自動起動"| CRJ
+    CRJ -->|"定期 Ping (HTTP GET)"| APEX
+    APEX -->|"200 OK (ms)"| CRJ
+    CRJ -->|"時系列ログ追記"| FS
+
+    %% 2. 手動オンデマンド監視フロー
+    CRS -->|"⚡ 手動 Ping (HTTP GET)"| APEX
+    CRS -->|"即時ログ追記"| FS
+
+    %% 3. Web 表示フロー
+    CRS -->|"ログ取得・可視化"| FS
+    CRS -->|"セッション・認証管理"| NEON
+```
+
+### 2.2 系統 1: 定期自動監視フロー (Cloud Scheduler & Cloud Run Jobs)
+毎日 09:00 にサーバーレスジョブが自動起動し、Autonomous Database の7日休眠制約を回避しつつ、時系列ログを Firestore に永続化します。
+
+```mermaid
+flowchart LR
+    subgraph Schedule["1. スケジュール起動"]
+        CS["⏱️ Cloud Scheduler<br/>(cron: 毎日 09:00 JST)"]
     end
 
-    %% バッチフロー
-    CS -->|"HTTP / OIDC 起動"| CRJ
-    CRJ -->|"1. Ping (HTTP GET)"| APEX
-    APEX -->|"2. レスポンス (200 OK / Time)"| CRJ
-    CRJ -->|"3. 時系列ログ保存"| FS
+    subgraph Worker["2. サーバーレスバッチ実行"]
+        CRJ["⚡ Cloud Run Jobs<br/>(Django: check_apex コマンド)"]
+    end
 
-    %% Webフロー
-    Browser -->|"閲覧・管理画面アクセス"| CRS
-    CRS -->|"直近ログクエリ"| FS
-    CRS -->|"認証・セッション・管理データ読み書き"| NEON
-    CRS -->|"HTML / JSON レスポンス"| Browser
+    subgraph AutonomousDB["3. 監視対象 (生存維持)"]
+        APEX["🏛️ Oracle APEX Autonomous DB<br/>(7日休眠制約を回避)"]
+    end
+
+    subgraph MetricsStorage["4. メトリクス永続化"]
+        FS[("🔥 Cloud Firestore<br/>(コレクション: apex_health_logs)")]
+    end
+
+    CS -->|"HTTP / OIDC 認証トリガー"| CRJ
+    CRJ -->|"ORDS REST API Ping (HTTP GET)"| APEX
+    APEX -->|"ステータス (200 OK) & 応答時間 (ms)"| CRJ
+    CRJ -->|"実行ログを NoSQL に追記保存"| FS
+```
+
+### 2.3 系統 2: 手動即時監視フロー (Cloud Run Service & REST API)
+管理者がダッシュボード上の「今すぐ手動チェック」を押下した際、Web サーバーから直接 Oracle APEX を即時検証（約0.2秒応答）し、結果を画面と Firestore へリアルタイム反映します。
+
+```mermaid
+flowchart LR
+    subgraph User["1. 管理者 / 閲覧者"]
+        Browser["🖥️ ブラウザ操作<br/>(⚡ 今すぐ手動チェック押下)"]
+    end
+
+    subgraph WebApp["2. Web サーバー即時処理"]
+        CRS["🌐 Cloud Run Service<br/>(Django: manual_check_view)"]
+    end
+
+    subgraph TargetDB["3. 監視対象"]
+        APEX["🏛️ Oracle APEX<br/>ORDS REST API Endpoint"]
+    end
+
+    subgraph Database["4. リアルタイム記録"]
+        FS[("🔥 Cloud Firestore<br/>(即時ログ追記)")]
+    end
+
+    Browser -->|"POST /api/check-apex/<br/>(CSRF保護 & 5秒非活性制御)"| CRS
+    CRS -->|"即時 Ping (HTTP GET)"| APEX
+    APEX -->|"レスポンス返却 (200 OK)"| CRS
+    CRS -->|"ヘルスチェック結果を保存"| FS
+    CRS -->|"JSON レスポンス返却 (200ms)<br/>& 画面タイムライン最新化"| Browser
 ```
 
 ---

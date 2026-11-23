@@ -24,6 +24,17 @@
       }
     });
   </script>
+  <style>
+    /* 初回Mermaid描画のための不可視初期化クラス */
+    .init-rendering {
+      position: absolute;
+      left: -9999px;
+      top: 0;
+      width: 100%;
+      max-width: 1152px;
+      visibility: hidden;
+    }
+  </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans">
 
@@ -66,13 +77,47 @@
       </div>
     </section>
 
-    <!-- 2. システム状態 & 直近稼働インジケーター -->
-    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+    <!-- メインタブ切り替えナビゲーション -->
+    <div class="flex border-b border-slate-800 space-x-2">
+      <button id="main-tab-btn-monitor"
+              onclick="switchMainTab('monitor')"
+              class="px-5 py-3 text-sm font-bold border-b-2 border-indigo-500 text-indigo-400 bg-slate-900/60 transition flex items-center space-x-2 rounded-t-xl">
+        <span>📊</span>
+        <span>稼働ステータス &amp; 監視</span>
+      </button>
+      <button id="main-tab-btn-arch"
+              onclick="switchMainTab('arch')"
+              class="px-5 py-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition flex items-center space-x-2 rounded-t-xl">
+        <span>🏗️</span>
+        <span>システムアーキテクチャ &amp; 技術選定</span>
+      </button>
+    </div>
+
+    <!-- メインタブ 1: 稼働ステータス & 監視 -->
+    <div id="main-pane-monitor" class="space-y-8">
+
+      <!-- 2. システム状態 & 直近稼働インジケーター -->
+      <section class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-800">
         <div>
-          <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">監視対象システム</h3>
-          <p class="text-xl font-bold text-white mt-1">Oracle APEX Autonomous Database (Free Tier)</p>
-          <p class="text-xs text-slate-400 mt-0.5">ORDS REST API Endpoint: <code class="bg-slate-850 px-1.5 py-0.5 rounded text-slate-300 font-mono text-[11px]">/ords/.../sentinel/ping</code></p>
+          <div class="flex items-center space-x-2">
+            <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">監視対象システム</h3>
+            <span class="text-[11px] bg-slate-800 text-cyan-400 px-2 py-0.5 rounded border border-slate-700">Autonomous DB</span>
+          </div>
+          <div class="flex flex-wrap items-center gap-3 mt-1.5">
+            <p class="text-xl font-bold text-white">Oracle APEX (Free Tier)</p>
+            <!-- Oracle APEX 個人開発画面リンク -->
+            <a href="https://ge379c0699018e7-autonomousdbapex2.adb.ap-osaka-1.oraclecloudapps.com/ords/r/nakamura01/pokedex_new"
+               target="_blank"
+               rel="noopener noreferrer"
+               class="inline-flex items-center space-x-1.5 px-3 py-1 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-750 text-indigo-400 hover:text-indigo-300 border border-slate-700 hover:border-indigo-500/50 shadow transition">
+              <span>🚀 稼働中アプリ (Pokédex) を開く</span>
+              <svg class="w-3 h-3 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </a>
+          </div>
+          <p class="text-xs text-slate-400 mt-1">ORDS REST API Endpoint: <code class="bg-slate-850 px-1.5 py-0.5 rounded text-slate-300 font-mono text-[11px]">/ords/.../sentinel/ping</code></p>
         </div>
         <div>
           {% if latest_log and latest_log.is_healthy %}
@@ -141,20 +186,41 @@
         {% endif %}
       </div>
     </section>
+  </div>
+  <!-- /main-pane-monitor -->
 
-    <!-- 3. システムアーキテクチャ図セクション -->
+  <!-- メインタブ 2: システムアーキテクチャ & 技術選定 -->
+  <div id="main-pane-arch" class="space-y-8 init-rendering">
+
+    <!-- 3. システムアーキテクチャ図セクション (タブ切り替え) -->
     <section class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
-      <div>
-        <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">System Architecture</h3>
-        <h4 class="text-xl font-bold text-white mt-1">システム全体アーキテクチャ図</h4>
-        <p class="text-xs text-slate-400 mt-1">
-          Cloud Scheduler による定期起動から、Cloud Run Jobs、3種の適材適所データストア（Polyglot Persistence）の連携フローです。
-        </p>
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">System Architecture</h3>
+          <h4 class="text-xl font-bold text-white mt-1">システムアーキテクチャ図</h4>
+        </div>
+        <!-- タブ切り替えボタン群 -->
+        <div class="inline-flex p-1 rounded-xl bg-slate-950 border border-slate-800 space-x-1">
+          <button id="tab-btn-all" onclick="switchDiagramTab('all')" class="diagram-tab-btn px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white shadow transition">
+            全体ハイブリッド構成
+          </button>
+          <button id="tab-btn-batch" onclick="switchDiagramTab('batch')" class="diagram-tab-btn px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-950 text-slate-400 hover:text-slate-200 transition">
+            1. 定期自動監視フロー
+          </button>
+          <button id="tab-btn-manual" onclick="switchDiagramTab('manual')" class="diagram-tab-btn px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-950 text-slate-400 hover:text-slate-200 transition">
+            2. 手動即時監視フロー
+          </button>
+        </div>
       </div>
 
       <!-- Mermaid レンダリング領域 -->
-      <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 md:p-6 overflow-x-auto">
-        <pre class="mermaid text-center flex justify-center">
+      <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 md:p-6 overflow-x-auto min-h-[320px]">
+        <!-- タブ 1: 全体構成 -->
+        <div id="diagram-pane-all" class="diagram-pane">
+          <p class="text-xs text-slate-400 mb-3 text-center">
+            Cloud Scheduler による定期自動監視と、Web からの即時手動チェックを兼ね備えた 2 系統のハイブリッド監視アーキテクチャです。
+          </p>
+          <pre class="mermaid text-center flex justify-center">
 flowchart LR
     subgraph Trigger["定期トリガー"]
         CS["⏱️ Cloud Scheduler<br/>(毎日 09:00 JST)"]
@@ -177,14 +243,82 @@ flowchart LR
         CRS["🌐 Cloud Run Service<br/>(Django Web App)"]
     end
 
+    %% 1. 定期バッチフロー
     CS -->|"自動起動"| CRJ
-    CRJ -->|"Ping (HTTP GET)"| APEX
+    CRJ -->|"定期 Ping (HTTP GET)"| APEX
     APEX -->|"200 OK (ms)"| CRJ
     CRJ -->|"時系列ログ追記"| FS
 
+    %% 2. 手動オンデマンド監視フロー
+    CRS -->|"⚡ 手動 Ping (HTTP GET)"| APEX
+    CRS -->|"即時ログ追記"| FS
+
+    %% 3. Web 表示フロー
     CRS -->|"ログ取得・可視化"| FS
     CRS -->|"セッション・認証管理"| NEON
-        </pre>
+          </pre>
+        </div>
+
+        <!-- タブ 2: 定期自動監視フロー -->
+        <div id="diagram-pane-batch" class="diagram-pane">
+          <p class="text-xs text-slate-400 mb-3 text-center">
+            Cloud Scheduler が Cloud Run Jobs を毎日 09:00 に起動し、Oracle APEX の生存維持（7日休眠制約回避）と時系列ログ記録を行う自動バッチフローです。
+          </p>
+          <pre class="mermaid text-center flex justify-center">
+flowchart LR
+    subgraph Schedule["1. スケジュール起動"]
+        CS["⏱️ Cloud Scheduler<br/>(cron: 毎日 09:00 JST)"]
+    end
+
+    subgraph Worker["2. サーバーレスバッチ実行"]
+        CRJ["⚡ Cloud Run Jobs<br/>(Django: check_apex コマンド)"]
+    end
+
+    subgraph AutonomousDB["3. 監視対象 (生存維持)"]
+        APEX["🏛️ Oracle APEX Autonomous DB<br/>(7日休眠制約を回避)"]
+    end
+
+    subgraph MetricsStorage["4. メトリクス永続化"]
+        FS[("🔥 Cloud Firestore<br/>(コレクション: apex_health_logs)")]
+    end
+
+    CS -->|"HTTP / OIDC 認証トリガー"| CRJ
+    CRJ -->|"ORDS REST API Ping (HTTP GET)"| APEX
+    APEX -->|"ステータス (200 OK) & 応答時間 (ms)"| CRJ
+    CRJ -->|"実行ログを NoSQL に追記保存"| FS
+          </pre>
+        </div>
+
+        <!-- タブ 3: 手動即時監視フロー -->
+        <div id="diagram-pane-manual" class="diagram-pane">
+          <p class="text-xs text-slate-400 mb-3 text-center">
+            管理画面上のボタン押下を契機に、Web サーバーから直接 Oracle APEX へ Ping を送信して即時検証（0.2秒応答）し、Firestore へ記録するオンデマンド監視フローです。
+          </p>
+          <pre class="mermaid text-center flex justify-center">
+flowchart LR
+    subgraph User["1. 管理者 / 閲覧者"]
+        Browser["🖥️ ブラウザ操作<br/>(⚡ 今すぐ手動チェック押下)"]
+    end
+
+    subgraph WebApp["2. Web サーバー即時処理"]
+        CRS["🌐 Cloud Run Service<br/>(Django: manual_check_view)"]
+    end
+
+    subgraph TargetDB["3. 監視対象"]
+        APEX["🏛️ Oracle APEX<br/>ORDS REST API Endpoint"]
+    end
+
+    subgraph Database["4. リアルタイム記録"]
+        FS[("🔥 Cloud Firestore<br/>(即時ログ追記)")]
+    end
+
+    Browser -->|"POST /api/check-apex/<br/>(CSRF保護 & 5秒非活性制御)"| CRS
+    CRS -->|"即時 Ping (HTTP GET)"| APEX
+    APEX -->|"レスポンス返却 (200 OK)"| CRS
+    CRS -->|"ヘルスチェック結果を保存"| FS
+    CRS -->|"JSON レスポンス返却 (200ms)<br/>& 画面タイムライン最新化"| Browser
+          </pre>
+        </div>
       </div>
     </section>
 
@@ -212,16 +346,82 @@ flowchart LR
         </p>
       </div>
     </section>
+  </div>
+  <!-- /main-pane-arch -->
 
   </main>
 
   <!-- フッター -->
-  <footer class="border-t border-slate-800 py-6 text-center text-xs text-slate-500">
-    Apex-Sentinel サービス管理画面 &copy; 2026 | Built with Django, Firestore, Neon &amp; Google Cloud Run
+  <footer class="border-t border-slate-800 py-6 text-center text-xs text-slate-500 space-y-2">
+    <div class="flex flex-wrap items-center justify-center gap-x-2">
+      <span>Apex-Sentinel サービス管理画面 &copy; 2026</span>
+      <span>•</span>
+      <span>Built with Django, Firestore, Neon &amp; Google Cloud Run</span>
+    </div>
+    <div class="flex items-center justify-center pt-1">
+      <a href="https://github.com/jackieReloaded0/apex-sentinel"
+         target="_blank"
+         rel="noopener noreferrer"
+         class="inline-flex items-center space-x-1.5 text-slate-400 hover:text-indigo-400 transition underline underline-offset-4 decoration-slate-700 hover:decoration-indigo-400">
+        <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />
+        </svg>
+        <span>GitHub: jackieReloaded0/apex-sentinel</span>
+      </a>
+    </div>
   </footer>
 
-  <!-- 手動ヘルスチェック用スクリプト -->
+  <!-- アーキテクチャ図タブ切り替え & 手動ヘルスチェック用スクリプト -->
   <script>
+    // メインタブ切り替え関数
+    function switchMainTab(tabName) {
+      const monitorPane = document.getElementById('main-pane-monitor');
+      const archPane = document.getElementById('main-pane-arch');
+      const monitorBtn = document.getElementById('main-tab-btn-monitor');
+      const archBtn = document.getElementById('main-tab-btn-arch');
+
+      // 初回ロード用の一時配置クラスを除去
+      if (archPane && archPane.classList.contains('init-rendering')) {
+        archPane.classList.remove('init-rendering');
+      }
+
+      if (tabName === 'monitor') {
+        monitorPane.classList.remove('hidden');
+        archPane.classList.add('hidden');
+        monitorBtn.className = 'px-5 py-3 text-sm font-bold border-b-2 border-indigo-500 text-indigo-400 bg-slate-900/60 transition flex items-center space-x-2 rounded-t-xl';
+        archBtn.className = 'px-5 py-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition flex items-center space-x-2 rounded-t-xl';
+      } else if (tabName === 'arch') {
+        monitorPane.classList.add('hidden');
+        archPane.classList.remove('hidden');
+        monitorBtn.className = 'px-5 py-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition flex items-center space-x-2 rounded-t-xl';
+        archBtn.className = 'px-5 py-3 text-sm font-bold border-b-2 border-indigo-500 text-indigo-400 bg-slate-900/60 transition flex items-center space-x-2 rounded-t-xl';
+      }
+    }
+
+    // アーキテクチャ図タブ切り替え関数
+    function switchDiagramTab(tabName) {
+      const tabs = ['all', 'batch', 'manual'];
+      tabs.forEach(name => {
+        const pane = document.getElementById(`diagram-pane-${name}`);
+        const btn = document.getElementById(`tab-btn-${name}`);
+        if (!pane || !btn) return;
+
+        if (name === tabName) {
+          pane.classList.remove('hidden');
+          btn.className = 'diagram-tab-btn px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white shadow transition';
+        } else {
+          pane.classList.add('hidden');
+          btn.className = 'diagram-tab-btn px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-950 text-slate-400 hover:text-slate-200 transition';
+        }
+      });
+    }
+
+    // Mermaid レンダリング完了後に初期タブ状態を反映
+    window.addEventListener('load', () => {
+      switchDiagramTab('all');
+      switchMainTab('monitor');
+    });
+
     function getCsrfToken() {
       const input = document.querySelector('[name=csrfmiddlewaretoken]');
       if (input) return input.value;
