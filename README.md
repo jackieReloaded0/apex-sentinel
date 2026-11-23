@@ -107,8 +107,8 @@ uv run pytest tests/test_security.py
 Neon や Google Cloud Firestore に接続せず、すべてローカルコンテナ（PostgreSQL + Firestore Emulator + Web）で自己完結させて起動することも可能です。
 
 ```bash
-# 全コンテナのビルド & 起動 (PostgreSQL, Firestore Emulator, Django Web)
-docker compose up -d
+# 初回起動、またはコード変更後のビルド & バックグラウンド起動
+docker compose up -d --build
 
 # ログの確認
 docker compose logs -f web
@@ -123,6 +123,16 @@ docker compose run --rm batch
 ```bash
 docker compose down
 ```
+
+> [!IMPORTANT]
+> **コード変更（`.py` や `.html` 等）が反映されない場合の注意点**
+> - 本リポジトリの Dockerfile は、本番環境（Google Cloud Run）と完全に同じ挙動・自己完結性を担保するため、ビルド時にソースコード全体をイメージ内へコピー（`COPY . .`）しています。
+> - 手元のフォルダをコンテナ内に直接マウント（`volumes`）していないため、**`dashboard.html` や `.py` ファイル（`views.py`, `settings.py` 等）を変更した際は、単に `docker compose up -d` を実行しただけでは変更が反映されません**（過去のビルド済みイメージが使われます）。
+> - ファイル変更をローカルに反映する際は、必ず **`--build` オプションを付けて再ビルド・再起動** してください：
+>   ```bash
+>   docker compose up -d --build
+>   ```
+> - *(※ もし手元のファイル保存と同時にリアルタイム反映（ホットリロード）させたい場合は、`docker-compose.yml` の `web` サービス定義に `volumes: - .:/app` を追記することで対応可能です)*
 
 ---
 
