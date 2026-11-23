@@ -24,6 +24,17 @@
       }
     });
   </script>
+  <style>
+    /* 初回Mermaid描画のための不可視初期化クラス */
+    .init-rendering {
+      position: absolute;
+      left: -9999px;
+      top: 0;
+      width: 100%;
+      max-width: 1152px;
+      visibility: hidden;
+    }
+  </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans">
 
@@ -66,8 +77,27 @@
       </div>
     </section>
 
-    <!-- 2. システム状態 & 直近稼働インジケーター -->
-    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+    <!-- メインタブ切り替えナビゲーション -->
+    <div class="flex border-b border-slate-800 space-x-2">
+      <button id="main-tab-btn-monitor"
+              onclick="switchMainTab('monitor')"
+              class="px-5 py-3 text-sm font-bold border-b-2 border-indigo-500 text-indigo-400 bg-slate-900/60 transition flex items-center space-x-2 rounded-t-xl">
+        <span>📊</span>
+        <span>稼働ステータス &amp; 監視</span>
+      </button>
+      <button id="main-tab-btn-arch"
+              onclick="switchMainTab('arch')"
+              class="px-5 py-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition flex items-center space-x-2 rounded-t-xl">
+        <span>🏗️</span>
+        <span>システムアーキテクチャ &amp; 技術選定</span>
+      </button>
+    </div>
+
+    <!-- メインタブ 1: 稼働ステータス & 監視 -->
+    <div id="main-pane-monitor" class="space-y-8">
+
+      <!-- 2. システム状態 & 直近稼働インジケーター -->
+      <section class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-800">
         <div>
           <div class="flex items-center space-x-2">
@@ -156,6 +186,11 @@
         {% endif %}
       </div>
     </section>
+  </div>
+  <!-- /main-pane-monitor -->
+
+  <!-- メインタブ 2: システムアーキテクチャ & 技術選定 -->
+  <div id="main-pane-arch" class="space-y-8 init-rendering">
 
     <!-- 3. システムアーキテクチャ図セクション (タブ切り替え) -->
     <section class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
@@ -311,6 +346,8 @@ flowchart LR
         </p>
       </div>
     </section>
+  </div>
+  <!-- /main-pane-arch -->
 
   </main>
 
@@ -336,6 +373,31 @@ flowchart LR
 
   <!-- アーキテクチャ図タブ切り替え & 手動ヘルスチェック用スクリプト -->
   <script>
+    // メインタブ切り替え関数
+    function switchMainTab(tabName) {
+      const monitorPane = document.getElementById('main-pane-monitor');
+      const archPane = document.getElementById('main-pane-arch');
+      const monitorBtn = document.getElementById('main-tab-btn-monitor');
+      const archBtn = document.getElementById('main-tab-btn-arch');
+
+      // 初回ロード用の一時配置クラスを除去
+      if (archPane && archPane.classList.contains('init-rendering')) {
+        archPane.classList.remove('init-rendering');
+      }
+
+      if (tabName === 'monitor') {
+        monitorPane.classList.remove('hidden');
+        archPane.classList.add('hidden');
+        monitorBtn.className = 'px-5 py-3 text-sm font-bold border-b-2 border-indigo-500 text-indigo-400 bg-slate-900/60 transition flex items-center space-x-2 rounded-t-xl';
+        archBtn.className = 'px-5 py-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition flex items-center space-x-2 rounded-t-xl';
+      } else if (tabName === 'arch') {
+        monitorPane.classList.add('hidden');
+        archPane.classList.remove('hidden');
+        monitorBtn.className = 'px-5 py-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition flex items-center space-x-2 rounded-t-xl';
+        archBtn.className = 'px-5 py-3 text-sm font-bold border-b-2 border-indigo-500 text-indigo-400 bg-slate-900/60 transition flex items-center space-x-2 rounded-t-xl';
+      }
+    }
+
     // アーキテクチャ図タブ切り替え関数
     function switchDiagramTab(tabName) {
       const tabs = ['all', 'batch', 'manual'];
@@ -354,9 +416,10 @@ flowchart LR
       });
     }
 
-    // Mermaid レンダリング完了後に初期タブ（all）以外を非表示にする
+    // Mermaid レンダリング完了後に初期タブ状態を反映
     window.addEventListener('load', () => {
       switchDiagramTab('all');
+      switchMainTab('monitor');
     });
 
     function getCsrfToken() {
